@@ -38,8 +38,6 @@ fn build_targets(b: *std.Build) !void {
         .{ .cpu_arch = .x86_64, .os_tag = .linux },
         .{ .cpu_arch = .aarch64, .os_tag = .linux },
         .{ .cpu_arch = .arm, .os_tag = .linux },
-        .{ .cpu_arch = .aarch64, .os_tag = .macos },
-        .{ .cpu_arch = .x86_64, .os_tag = .windows },
     };
 
     for (targets) |t| {
