@@ -1,0 +1,6 @@
+.{
+    .name = .calculator,
+    .version = "0.0.0",
+    .fingerprint = 0x247990c2bf525a56,
+    .paths = .{""},
+}
