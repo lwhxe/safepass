@@ -9,7 +9,7 @@ fn nextLine(reader: anytype, buffer: []u8) !?[]const u8 {
 }
 
 fn help() void {
-    std.debug.print("HELP SCREEN HERE\n", .{});
+    std.debug.print("\x1b[32mHELP SCREEN HERE\x1b[0m\n", .{});
 }
 
 fn passdir() void {
@@ -32,7 +32,9 @@ const options = enum {
 };
 
 pub fn main() !void {
-    const args = try std.process.argsAlloc(std.heap.page_allocator);
+    const allocator = std.heap.page_allocator;
+
+    const args = try std.process.argsAlloc(allocator);
     if (args.len == 0) {
         help();
     }
