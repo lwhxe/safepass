@@ -1,4 +1,6 @@
 const std = @import("std");
+const fstruct = @import("pass_structure.zig");
+
 var stdin = std.fs.File.reader(std.fs.File.stdin(), &.{}).interface;
 const allocator = std.heap.page_allocator;
 
