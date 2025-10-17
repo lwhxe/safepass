@@ -1,58 +1,66 @@
 const std = @import("std");
-var stdin = std.fs.File.reader(std.fs.File.stdin(), &.{}).interface;
+var w_buffer: [1024]u8 = undefined;
+var writer: std.fs.File.Writer = std.fs.File.stdout().writer(&w_buffer);
+const stdout: *std.Io.Writer = &writer.interface;
+
+var r_buffer: [1024]u8 = undefined;
+var reader: std.fs.File.Reader = std.fs.File.stdin().reader(&r_buffer);
+const stdin: *std.Io.Reader = &reader.interface;
+
+const AES = std.crypto.aead.aes_gcm.Aes128Gcm;
+var tag: [AES.tag_length]u8 = undefined;
+var nonce: [AES.nonce_length]u8 = [_]u8{0x00} ** AES.nonce_length;
+
 const allocator = std.heap.page_allocator;
 
-fn nextLine() ![]const u8 {
-    const line = try stdin.allocRemaining(allocator, std.Io.Limit.unlimited);
-    return std.mem.trimRight(u8, line, "\r");
+fn open(database: []u8) void {
+    try stdout.print("password: ", .{});
+    try stdout.flush();
+
+    const encryption_key = try stdin.peekDelimiterExclusive('\n');
+    var plaintext: [10000]u8 = undefined;
+    try AES.decrypt(&plaintext, database, tag, "", nonce, encryption_key);
+
+    try stdout.print("\nPLAINTEXT:\n\n{s}\n\n", .{plaintext});
 }
 
-fn help() void {
-    std.debug.print("\x1b[32mHELP SCREEN HERE\x1b[0m\n", .{});
+fn create() !void {
+    try stdout.print("Creating passwords file...\n", .{});
+    try stdout.flush();
+    // Create passwords file
+    _ = try std.fs.cwd().createFile("passwords", .{});
 }
-
-fn passdir() !void {
-    const dir = try nextLine();
-    _ = dir;
-}
-
-fn open(database: []u8) !void {
-    _ = database;
-}
-
-fn delete() void {}
-
-const options = enum {
-    help,
-    passdir,
-    open,
-    delete,
-};
 
 pub fn main() !void {
-    const args = try std.process.argsAlloc(allocator);
-    if (args.len == 0) {
-        help();
-    }
+    try stdout.print("Welcome to safepass!\n", .{});
+    try stdout.flush();
 
-    const passfile = try std.fs.cwd().openFile(
-        "passwords",
-        .{ .mode = .read_write },
-    );
+    const passfile = while (true) {
+        break std.fs.cwd().openFile(
+            "passwords",
+            .{ .mode = .read_write }
+        ) catch {
+            try stdout.print("Do you want to create a new passwords file? (y/n)", .{});
+            try stdout.flush();
 
-    const database = passfile.readToEndAlloc(std.heap.page_allocator, 100000) catch |err| {
-        try passdir();
+            const ans = try stdin.takeDelimiterExclusive('\n');
+
+            if (ans[0] == 'y') {
+                try create();
+            }
+            try stdout.print("Done.\n", .{});
+            try stdout.flush();
+
+            // discard remaining stdin
+
+            continue;
+        };
+    };
+
+    const database = passfile.readToEndAlloc(std.heap.page_allocator, 10000) catch |err| {
         return err;
     };
     if (database.len == 0) {
-        try passdir();
-        try open(database);
-    }
-
-    switch (std.meta.stringToEnum(options, args[1]) orelse .help) {
-        .help => help(),
-        .passdir => {},
-        .open => try open(database),
-        .delete => {},
+        std.debug.print("An empty passwords file has been found!\n", .{});
     }
 }
